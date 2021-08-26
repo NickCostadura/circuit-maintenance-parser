@@ -7,7 +7,7 @@ import bs4  # type: ignore
 from bs4.element import ResultSet  # type: ignore
 
 from circuit_maintenance_parser.errors import ParsingError
-from circuit_maintenance_parser.parser import Html, Impact, CircuitImpact, Status
+from circuit_maintenance_parser.parser import Html, Email, Impact, CircuitImpact, Status
 
 # pylint: disable=too-many-nested-blocks, too-many-branches
 
@@ -100,3 +100,8 @@ class HtmlParserLumen1(Html):
                         data_circuit["impact"] = Impact("OUTAGE")
                         circuits.append(CircuitImpact(**data_circuit))
                 data["circuits"] = circuits
+
+
+class HtmlParserLumen2(Email):
+    def parse_email(self, email_data, data_base):
+        breakpoint()

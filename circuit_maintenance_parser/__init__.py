@@ -37,13 +37,13 @@ SUPPORTED_PROVIDER_NAMES = [provider.get_provider_type() for provider in SUPPORT
 SUPPORTED_ORGANIZER_EMAILS = [provider.get_default_organizer() for provider in SUPPORTED_PROVIDERS]
 
 
-def init_provider(raw, provider_type=None) -> Optional[GenericProvider]:
+def init_provider(email_data, raw, provider_type=None) -> Optional[GenericProvider]:
     """Returns an instance of the corresponding Notification Parser."""
     try:
         if not provider_type:
             provider_type = GenericProvider.get_provider_type()
         provider_parser_class = get_provider_class(provider_type)
-        return provider_parser_class(raw=raw)
+        return provider_parser_class(email_data=email_data, raw=raw)
 
     except NonexistentParserError:
         return None

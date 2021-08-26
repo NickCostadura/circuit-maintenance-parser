@@ -1,7 +1,8 @@
 """Definition of Provider class as the entry point to the library."""
 import logging
 import traceback
-from typing import Iterable, Type
+from email.message import Message
+from typing import Iterable, Optional, Type
 
 from pydantic import BaseModel, Extra
 
@@ -11,7 +12,7 @@ from circuit_maintenance_parser.parser import Parser, ICal
 from circuit_maintenance_parser.errors import ParsingError, MissingMandatoryFields
 
 from circuit_maintenance_parser.parsers.cogent import HtmlParserCogent1
-from circuit_maintenance_parser.parsers.lumen import HtmlParserLumen1
+from circuit_maintenance_parser.parsers.lumen import HtmlParserLumen1, HtmlParserLumen2
 from circuit_maintenance_parser.parsers.megaport import HtmlParserMegaport1
 from circuit_maintenance_parser.parsers.telstra import HtmlParserTelstra1
 from circuit_maintenance_parser.parsers.verizon import HtmlParserVerizon1
@@ -20,8 +21,7 @@ from circuit_maintenance_parser.parsers.zayo import HtmlParserZayo1
 
 logger = logging.getLogger(__name__)
 
-
-class GenericProvider(BaseModel, extra=Extra.forbid):
+class GenericProvider(BaseModel):
     """Base class for the Providers Parsers.
 
     This is the base class that is created for a Circuit Maintenance Parser
@@ -41,8 +41,12 @@ class GenericProvider(BaseModel, extra=Extra.forbid):
 
     # Default values for parsing notifications
     _default_organizer: str = "unknown"
+    email_data: Optional[Message]
+    raw: Optional[bytes]
 
-    raw: bytes
+    class Config:
+        extra=Extra.forbid
+        arbitrary_types_allowed=True
 
     @classmethod
     def get_default_organizer(cls) -> str:
@@ -73,6 +77,7 @@ class GenericProvider(BaseModel, extra=Extra.forbid):
             parser_name = parser_class.__name__
             try:
                 parser = parser_class(
+                    email_data=self.email_data,
                     raw=self.raw,
                     default_provider=self.get_provider_type(),
                     default_organizer=self.get_default_organizer(),
@@ -116,7 +121,7 @@ class EUNetworks(GenericProvider):
 class Lumen(GenericProvider):
     """Lumen provider custom class."""
 
-    _parser_classes: Iterable[Type[Parser]] = [HtmlParserLumen1]
+    _parser_classes: Iterable[Type[Parser]] = [HtmlParserLumen1, HtmlParserLumen2]
     _default_organizer = "smc@lumen.com"
 
 

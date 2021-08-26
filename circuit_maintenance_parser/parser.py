@@ -4,7 +4,7 @@ import base64
 import calendar
 import datetime
 import quopri
-from typing import Iterable, Union, Dict, Mapping
+from typing import Iterable, Union, Dict, Mapping, Optional
 
 import bs4  # type: ignore
 from bs4.element import ResultSet  # type: ignore
@@ -14,13 +14,13 @@ from icalendar import Calendar  # type: ignore
 
 from circuit_maintenance_parser.errors import ParsingError, MissingMandatoryFields
 from circuit_maintenance_parser.output import Maintenance, Status, Impact, CircuitImpact
-
+from email.message import Message
 # pylint: disable=no-member
 
 logger = logging.getLogger(__name__)
 
 
-class Parser(BaseModel, extra=Extra.forbid):
+class Parser(BaseModel):
     """Parser class.
 
     Attributes:
@@ -46,12 +46,17 @@ class Parser(BaseModel, extra=Extra.forbid):
 
     """
 
-    raw: bytes
+    email_data: Optional[Message]
+    raw: Optional[bytes]
     default_provider: str = "unknown"
     default_organizer: str = "unknown"
 
     # Data Type used as payload
     _data_type = "text/plain"
+
+    class Config:
+        extra=Extra.forbid
+        arbitrary_types_allowed=True
 
     @classmethod
     def get_data_type(cls) -> str:
@@ -147,6 +152,44 @@ class ICal(Parser):
         logger.debug("Successful parsing for %s", self.__class__.__name__)
 
         return result
+
+
+class Email(Parser):
+
+    def get_body(self):
+        breakpoint()
+        if self.email_data.is_multipart():
+            for part in self.email_data.walk():
+                ctype = part.get_content_type()
+                cdispo = str(part.get('Content-Disposition'))
+                if ctype == 'text/plain' and 'attachment' not in cdispo:
+                    body = part.get_payload(decode=True)
+                    break
+        else:
+            body = self.email_data.get_payload(decode=True)
+        return body
+
+    def process(self) -> Iterable[Maintenance]:
+        """Execute parsing."""
+        result = []
+
+        data_base: Dict[str, Union[int, str, Iterable]] = {
+            "provider": self.default_provider,
+            "organizer": self.default_organizer,
+        }
+        try:
+            for data in self.parse_email(self.email_data, data_base):
+                result.append(Maintenance(**data))
+
+            logger.debug("Successful parsing for %s", self.__class__.__name__)
+
+            return result
+
+        except ValidationError as exc:
+            raise MissingMandatoryFields from exc
+
+        except Exception as exc:
+            raise ParsingError from exc
 
 
 class Html(Parser):
