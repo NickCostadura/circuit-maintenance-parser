@@ -64,8 +64,8 @@ class HtmlParserZayo1(Html):
             if len(head_row) < 5 or [self.clean_line(line) for line in head_row[:5]] != [
                 "Circuit Id",
                 "Expected Impact",
-                "A Location CLLI",
-                "Z Location CLLI",
+                "A Location Address",
+                "Z Location Address",
                 "Legacy Circuit Id",
             ]:
                 logger.warning("Table headers are not as expected: %s", head_row)
